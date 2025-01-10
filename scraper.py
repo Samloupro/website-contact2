@@ -8,7 +8,7 @@ import uuid
 app = Flask(__name__)
 
 # Version du script
-SCRIPT_VERSION = "V 1.2"
+SCRIPT_VERSION = "V 1.3"
 
 # Fonction pour valider les numéros de téléphone (longueur entre 10 et 15)
 def validate_phones(phones):
@@ -83,10 +83,12 @@ def extract_social_links_jsonld(soup):
 
     return social_links
 
-# Fonction pour explorer tous les liens sur la page
-def extract_links(soup, base_url):
+# Fonction pour explorer tous les liens sur la page (limité à une profondeur donnée)
+def extract_links(soup, base_url, max_links=50):
     links = set()
     for a_tag in soup.find_all("a", href=True):
+        if len(links) >= max_links:
+            break
         href = a_tag["href"]
         if href.startswith("/"):
             href = base_url.rstrip("/") + href
@@ -110,7 +112,7 @@ def scrape():
     }
 
     try:
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=headers, timeout=10)
         response.raise_for_status()
 
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -126,7 +128,7 @@ def scrape():
         # Scraper chaque lien
         for link in links:
             try:
-                sub_response = requests.get(link, headers=headers)
+                sub_response = requests.get(link, headers=headers, timeout=10)
                 sub_response.raise_for_status()
                 sub_soup = BeautifulSoup(sub_response.text, 'html.parser')
 
