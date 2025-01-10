@@ -45,7 +45,7 @@ def scrape():
         visited_links = set()
         domain = urlparse(url).netloc
 
-        for link in links[:10]:  # Limiting to first 10 links
+        for link in list(links)[:10]:  # Convert to list and limit to first 10 links
             if link in visited_links or urlparse(link).netloc != domain:
                 continue
             visited_links.add(link)
