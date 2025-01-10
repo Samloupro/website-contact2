@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup
 import requests
 from urllib.parse import urlparse
 import logging
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +20,20 @@ def extract_links(soup, base_url):
             links.add(href)
     return links
 
+def extract_links_jsonld(soup):
+    links = set()
+    scripts = soup.find_all("script", type="application/ld+json")
+    for script in scripts:
+        try:
+            data = json.loads(script.string)
+            if "sameAs" in data:
+                for link in data["sameAs"]:
+                    if link.startswith("http"):
+                        links.add(link)
+        except (json.JSONDecodeError, TypeError):
+            continue
+    return links
+
 def scrape_links(url, headers):
     if not url or not is_valid_url(url):
         return {'error': 'Invalid URL provided.'}, 400
@@ -29,7 +44,10 @@ def scrape_links(url, headers):
 
         soup = BeautifulSoup(response.text, 'html.parser')
         links = extract_links(soup, url)
-        return links, None
+        jsonld_links = extract_links_jsonld(soup)
+        all_links = links.union(jsonld_links)  # Combine both sets of links
+
+        return all_links, None
     except requests.exceptions.RequestException as e:
         logger.error(f"Error accessing the URL: {e}")
         return None, f"Error accessing the URL: {e}"
