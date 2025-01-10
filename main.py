@@ -2,6 +2,8 @@ from flask import Flask, request, jsonify
 from bs4 import BeautifulSoup
 import requests
 import uuid
+import logging
+from urllib.parse import urlparse
 
 from utils.email_extractor import extract_emails_html, extract_emails_jsonld
 from utils.phone_extractor import extract_phones_html, extract_phones_jsonld, validate_phones
@@ -11,11 +13,18 @@ from utils.link_explorer import extract_links
 app = Flask(__name__)
 SCRIPT_VERSION = "V 1.3"
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+def is_valid_url(url):
+    parsed = urlparse(url)
+    return bool(parsed.netloc) and bool(parsed.scheme)
+
 @app.route('/scrape', methods=['GET'])
 def scrape():
     url = request.args.get('url')
-    if not url:
-        return jsonify({'error': 'Please provide a URL.'}), 400
+    if not url or not is_valid_url(url):
+        return jsonify({'error': 'Invalid URL provided.'}), 400
 
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36',
@@ -33,8 +42,13 @@ def scrape():
         emails = {}
         phones = {}
         social_links = extract_social_links_jsonld(soup)
+        visited_links = set()
+        domain = urlparse(url).netloc
 
-        for link in links:
+        for link in links[:10]:  # Limiting to first 10 links
+            if link in visited_links or urlparse(link).netloc != domain:
+                continue
+            visited_links.add(link)
             try:
                 sub_response = requests.get(link, headers=headers, timeout=10)
                 sub_response.raise_for_status()
@@ -51,7 +65,8 @@ def scrape():
                     if phone not in phones:
                         phones[phone] = []
                     phones[phone].append(link)
-            except requests.exceptions.RequestException:
+            except requests.exceptions.RequestException as e:
+                logger.error(f"Failed to process link {link}: {e}")
                 continue
 
         result = {
@@ -78,9 +93,11 @@ def scrape():
             ]
         }
 
+        logger.info(f"Processed URL: {url}")
         return jsonify(result)
 
     except requests.exceptions.RequestException as e:
+        logger.error(f"Error accessing the URL: {e}")
         return jsonify({'error': f"Error accessing the URL: {str(e)}"}), 500
 
 if __name__ == '__main__':
