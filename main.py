@@ -56,12 +56,12 @@ def scrape():
                 continue
 
         result = {
+            "request_id": str(uuid.uuid4()),
+            "domain": url.split("//")[-1].split("/")[0],
+            "query": url,
+            "status": "OK",
             "data": [
                 {
-                    "request_id": str(uuid.uuid4()),
-                    "query": url,
-                    "status": "OK",
-                    "domain": url.split("//")[-1].split("/")[0],
                     "emails": [{"value": email, "sources": sources} for email, sources in emails.items()],
                     "phone_numbers": [{"value": phone, "sources": sources} for phone, sources in phones.items()],
                     "social_links": {
