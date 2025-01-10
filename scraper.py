@@ -3,11 +3,12 @@ from bs4 import BeautifulSoup
 import requests
 import re
 import json
+import uuid
 
 app = Flask(__name__)
 
 # Version du script
-SCRIPT_VERSION = "V 1.1"
+SCRIPT_VERSION = "V 1.2"
 
 # Fonction pour valider les numéros de téléphone (longueur entre 10 et 15)
 def validate_phones(phones):
@@ -82,6 +83,17 @@ def extract_social_links_jsonld(soup):
 
     return social_links
 
+# Fonction pour explorer tous les liens sur la page
+def extract_links(soup, base_url):
+    links = set()
+    for a_tag in soup.find_all("a", href=True):
+        href = a_tag["href"]
+        if href.startswith("/"):
+            href = base_url.rstrip("/") + href
+        if href.startswith("http"):
+            links.add(href)
+    return links
+
 @app.route('/scrape', methods=['POST'])
 def scrape():
     data = request.get_json()
@@ -98,33 +110,61 @@ def scrape():
     }
 
     try:
-        # Inclure les headers dans la requête
         response = requests.get(url, headers=headers)
         response.raise_for_status()
 
         soup = BeautifulSoup(response.text, 'html.parser')
 
-        # Extraire les emails
-        emails = re.findall(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', soup.text)
-        emails.extend(extract_emails_jsonld(soup))
-        emails = [email.strip().lower() for email in emails]
-        unique_emails = list(set(emails))
+        # Extraire tous les liens
+        links = extract_links(soup, url)
 
-        # Extraire et valider les numéros de téléphone
-        phones = re.findall(r'\+?[0-9][0-9.\-\s()]{8,}[0-9]', soup.text)
-        phones.extend(extract_phones_jsonld(soup))
-        phones = [re.sub(r'\D', '', phone) for phone in phones]
-        unique_phones = validate_phones(phones)
-
-        # Extraire les liens des réseaux sociaux
+        # Initialiser les résultats
+        emails = {}
+        phones = {}
         social_links = extract_social_links_jsonld(soup)
 
-        return jsonify({
-            'version': SCRIPT_VERSION,
-            'emails': unique_emails,
-            'phones': unique_phones,
-            'social_links': social_links
-        })
+        # Scraper chaque lien
+        for link in links:
+            try:
+                sub_response = requests.get(link, headers=headers)
+                sub_response.raise_for_status()
+                sub_soup = BeautifulSoup(sub_response.text, 'html.parser')
+
+                # Extraire les emails
+                sub_emails = re.findall(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', sub_soup.text)
+                sub_emails.extend(extract_emails_jsonld(sub_soup))
+                for email in set(sub_emails):
+                    if email not in emails:
+                        emails[email] = []
+                    emails[email].append(link)
+
+                # Extraire les numéros de téléphone
+                sub_phones = re.findall(r'\+?[0-9][0-9.\-\s()]{8,}[0-9]', sub_soup.text)
+                sub_phones.extend(extract_phones_jsonld(sub_soup))
+                for phone in set(validate_phones(sub_phones)):
+                    if phone not in phones:
+                        phones[phone] = []
+                    phones[phone].append(link)
+
+            except requests.exceptions.RequestException:
+                continue
+
+        # Organiser les résultats
+        result = {
+            "status": "OK",
+            "request_id": str(uuid.uuid4()),
+            "data": [
+                {
+                    "domain": url.split("//")[-1].split("/")[0],
+                    "query": url,
+                    "emails": [{"value": email, "sources": sources} for email, sources in emails.items()],
+                    "phone_numbers": [{"value": phone, "sources": sources} for phone, sources in phones.items()],
+                    **social_links
+                }
+            ]
+        }
+
+        return jsonify(result)
 
     except requests.exceptions.RequestException as e:
         return jsonify({'error': f"Error accessing the URL: {str(e)}"}), 500
