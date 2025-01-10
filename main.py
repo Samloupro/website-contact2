@@ -1,5 +1,4 @@
 import asyncio
-import aiohttp
 from concurrent.futures import ThreadPoolExecutor
 from flask import Flask, request, jsonify
 from bs4 import BeautifulSoup
@@ -12,16 +11,13 @@ from utils.social_links import extract_social_links_jsonld
 from utils.link_scraper import scrape_links
 from utils.user_agent import get_user_agent_headers
 from utils.link_analyzer import analyze_links, is_valid_url, extract_links
+import requests
 
 app = Flask(__name__)
 SCRIPT_VERSION = "V 1.3"
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-async def fetch(session, url, headers):
-    async with session.get(url, headers=headers, timeout=10) as response:
-        return await response.text()
 
 def analyze_links_parallel(links, headers, domain):
     with ThreadPoolExecutor() as executor:
@@ -59,10 +55,12 @@ async def scrape():
 
     social_links = {}
     if include_social_links:
-        async with aiohttp.ClientSession() as session:
-            response_text = await fetch(session, url, headers)
-            soup = BeautifulSoup(response_text, 'html.parser')
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.text, 'html.parser')
             social_links = extract_social_links_jsonld(soup)
+        else:
+            return jsonify({'error': 'Failed to fetch the URL'}), 500
 
     result = {
         "request_id": str(uuid.uuid4()),
