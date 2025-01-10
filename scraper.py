@@ -7,14 +7,14 @@ import json
 app = Flask(__name__)
 
 # Version du script
-SCRIPT_VERSION = "V 1.0"
+SCRIPT_VERSION = "V 1.1"
 
 # Fonction pour valider les numéros de téléphone (longueur entre 10 et 15)
 def validate_phones(phones):
     return [phone for phone in phones if 10 <= len(re.sub(r'\D', '', phone)) <= 15]
 
-# Fonction pour extraire les liens des réseaux sociaux
-def extract_social_links(soup):
+# Fonction pour extraire les liens des réseaux sociaux via JSON-LD
+def extract_social_links_json(soup):
     social_links = {
         "facebook": None,
         "instagram": None,
@@ -27,7 +27,6 @@ def extract_social_links(soup):
         "snapchat": None
     }
 
-    # Rechercher les balises <script type="application/ld+json">
     scripts = soup.find_all("script", type="application/ld+json")
     for script in scripts:
         try:
@@ -56,6 +55,47 @@ def extract_social_links(soup):
             continue
 
     return social_links
+
+# Fonction pour extraire les liens des réseaux sociaux directement dans le HTML
+def extract_social_links_direct(soup):
+    social_links = {
+        "facebook": None,
+        "instagram": None,
+        "twitter": None,
+        "tiktok": None,
+        "linkedin": None,
+        "youtube": None,
+        "pinterest": None,
+        "github": None,
+        "snapchat": None
+    }
+
+    social_patterns = {
+        "facebook": r"https?://(www\.)?facebook\.com/[^\s\"']+",
+        "instagram": r"https?://(www\.)?instagram\.com/[^\s\"']+",
+        "twitter": r"https?://(www\.)?twitter\.com/[^\s\"']+",
+        "tiktok": r"https?://(www\.)?tiktok\.com/[^\s\"']+",
+        "linkedin": r"https?://(www\.)?linkedin\.com/[^\s\"']+",
+        "youtube": r"https?://(www\.)?youtube\.com/[^\s\"']+",
+        "pinterest": r"https?://(www\.)?pinterest\.com/[^\s\"']+",
+        "github": r"https?://(www\.)?github\.com/[^\s\"']+",
+        "snapchat": r"https?://(www\.)?snapchat\.com/[^\s\"']+"
+    }
+
+    for platform, pattern in social_patterns.items():
+        match = re.search(pattern, soup.text)
+        if match:
+            social_links[platform] = match.group(0)
+
+    return social_links
+
+# Fusion des résultats des deux méthodes
+def extract_social_links(soup):
+    social_links_json = extract_social_links_json(soup)
+    social_links_direct = extract_social_links_direct(soup)
+    
+    merged_links = {key: social_links_json.get(key) or social_links_direct.get(key) for key in social_links_json.keys()}
+    return merged_links
 
 @app.route('/scrape', methods=['POST'])
 def scrape():
