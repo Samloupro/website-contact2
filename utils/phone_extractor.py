@@ -1,4 +1,5 @@
 import re
+import json
 
 def validate_phones(phones):
     return [phone for phone in phones if 10 <= len(re.sub(r'\D', '', phone)) <= 15]
@@ -17,4 +18,3 @@ def extract_phones_jsonld(soup):
         except (json.JSONDecodeError, TypeError):
             continue
     return phones
-
