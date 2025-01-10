@@ -14,7 +14,7 @@ from utils.link_analyzer import analyze_links, is_valid_url, extract_links
 import requests
 
 app = Flask(__name__)
-SCRIPT_VERSION = "V 1.3"
+SCRIPT_VERSION = "V 1.4"
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
