@@ -6,6 +6,9 @@ import json
 
 app = Flask(__name__)
 
+# Version du script
+SCRIPT_VERSION = "V 1.0"
+
 # Fonction pour valider les numéros de téléphone (longueur entre 10 et 15)
 def validate_phones(phones):
     return [phone for phone in phones if 10 <= len(re.sub(r'\D', '', phone)) <= 15]
@@ -82,6 +85,7 @@ def scrape():
         social_links = extract_social_links(soup)
 
         return jsonify({
+            'version': SCRIPT_VERSION,
             'emails': unique_emails,
             'phones': unique_phones,
             'social_links': social_links
@@ -91,4 +95,5 @@ def scrape():
         return jsonify({'error': f"Error accessing the URL: {str(e)}"}), 500
 
 if __name__ == '__main__':
+    print(f"Starting script version: {SCRIPT_VERSION}")
     app.run(host='0.0.0.0', port=5000)
