@@ -88,7 +88,8 @@ def scrape():
                         "tiktok": social_links.get("tiktok"),
                         "twitter": social_links.get("twitter"),
                         "youtube": social_links.get("youtube")
-                    }
+                    },
+                    "unique_links": list(visited_links)  # Add unique links to the result
                 }
             ]
         }
