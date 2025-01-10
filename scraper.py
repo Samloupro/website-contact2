@@ -7,7 +7,7 @@ import json
 app = Flask(__name__)
 
 # Version du script
-SCRIPT_VERSION = "V 1.0"
+SCRIPT_VERSION = "V 1.3"
 
 # Fonction pour valider les numéros de téléphone (longueur entre 10 et 15)
 def validate_phones(phones):
@@ -132,7 +132,10 @@ def scrape():
     url = data['url']
 
     try:
-        response = requests.get(url)
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.5615.138 Safari/537.36'
+        }
+        response = requests.get(url, headers=headers)
         response.raise_for_status()
 
         soup = BeautifulSoup(response.text, 'html.parser')
