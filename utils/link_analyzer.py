@@ -2,6 +2,8 @@ from bs4 import BeautifulSoup
 import requests
 from urllib.parse import urlparse
 import logging
+from utils.email_extractor import extract_emails_html, extract_emails_jsonld  # Import the email extraction functions
+from utils.phone_extractor import extract_phones_html, extract_phones_jsonld, validate_phones  # Import phone extraction functions
 
 logger = logging.getLogger(__name__)
 
