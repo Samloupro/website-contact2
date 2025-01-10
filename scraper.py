@@ -7,14 +7,40 @@ import json
 app = Flask(__name__)
 
 # Version du script
-SCRIPT_VERSION = "V 1.1"
+SCRIPT_VERSION = "V 1.0"
 
 # Fonction pour valider les numéros de téléphone (longueur entre 10 et 15)
 def validate_phones(phones):
     return [phone for phone in phones if 10 <= len(re.sub(r'\D', '', phone)) <= 15]
 
+# Fonction pour extraire les emails via JSON-LD
+def extract_emails_jsonld(soup):
+    emails = []
+    scripts = soup.find_all("script", type="application/ld+json")
+    for script in scripts:
+        try:
+            data = json.loads(script.string)
+            if "email" in data:
+                emails.append(data["email"])
+        except (json.JSONDecodeError, TypeError):
+            continue
+    return emails
+
+# Fonction pour extraire les numéros de téléphone via JSON-LD
+def extract_phones_jsonld(soup):
+    phones = []
+    scripts = soup.find_all("script", type="application/ld+json")
+    for script in scripts:
+        try:
+            data = json.loads(script.string)
+            if "telephone" in data:
+                phones.append(data["telephone"])
+        except (json.JSONDecodeError, TypeError):
+            continue
+    return phones
+
 # Fonction pour extraire les liens des réseaux sociaux via JSON-LD
-def extract_social_links_json(soup):
+def extract_social_links_jsonld(soup):
     social_links = {
         "facebook": None,
         "instagram": None,
@@ -89,9 +115,9 @@ def extract_social_links_direct(soup):
 
     return social_links
 
-# Fusion des résultats des deux méthodes
+# Fusion des résultats des deux méthodes pour les réseaux sociaux
 def extract_social_links(soup):
-    social_links_json = extract_social_links_json(soup)
+    social_links_json = extract_social_links_jsonld(soup)
     social_links_direct = extract_social_links_direct(soup)
     
     merged_links = {key: social_links_json.get(key) or social_links_direct.get(key) for key in social_links_json.keys()}
@@ -113,11 +139,13 @@ def scrape():
 
         # Extraire les emails
         emails = re.findall(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', soup.text)
+        emails.extend(extract_emails_jsonld(soup))
         emails = [email.strip().lower() for email in emails]
         unique_emails = list(set(emails))
 
         # Extraire et valider les numéros de téléphone
         phones = re.findall(r'\+?[0-9][0-9.\-\s()]{8,}[0-9]', soup.text)
+        phones.extend(extract_phones_jsonld(soup))
         phones = [re.sub(r'\D', '', phone) for phone in phones]
         unique_phones = validate_phones(phones)
 
