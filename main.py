@@ -1,25 +1,3 @@
-from flask import Flask, request, jsonify
-from bs4 import BeautifulSoup
-import requests
-import uuid
-import logging
-from urllib.parse import urlparse
-
-from utils.email_extractor import extract_emails_html, extract_emails_jsonld
-from utils.phone_extractor import extract_phones_html, extract_phones_jsonld, validate_phones
-from utils.social_links import extract_social_links_jsonld
-from utils.link_explorer import extract_links
-
-app = Flask(__name__)
-SCRIPT_VERSION = "V 1.3"
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-def is_valid_url(url):
-    parsed = urlparse(url)
-    return bool(parsed.netloc) and bool(parsed.scheme)
-
 @app.route('/scrape', methods=['GET'])
 def scrape():
     url = request.args.get('url')
@@ -37,7 +15,9 @@ def scrape():
         response.raise_for_status()
 
         soup = BeautifulSoup(response.text, 'html.parser')
-        links = extract_links(soup, url)
+        links_html = extract_links_html(soup, url)
+        links_jsonld = extract_links_jsonld(soup, url)
+        links = set(links_html + links_jsonld)  # Combine and deduplicate links
 
         emails = {}
         phones = {}
@@ -100,7 +80,3 @@ def scrape():
     except requests.exceptions.RequestException as e:
         logger.error(f"Error accessing the URL: {e}")
         return jsonify({'error': f"Error accessing the URL: {str(e)}"}), 500
-
-if __name__ == '__main__':
-    print(f"Starting script version: {SCRIPT_VERSION}")
-    app.run(host='0.0.0.0', port=5000)
