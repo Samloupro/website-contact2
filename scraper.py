@@ -2,47 +2,55 @@ from flask import Flask, request, jsonify
 from bs4 import BeautifulSoup
 import requests
 import re
+import json
 
 app = Flask(__name__)
 
 # Fonction pour valider les numéros de téléphone (longueur entre 10 et 15)
 def validate_phones(phones):
-    return [phone for phone in phones if 10 <= len(phone) <= 15]
+    return [phone for phone in phones if 10 <= len(re.sub(r'\D', '', phone)) <= 15]
 
 # Fonction pour extraire les liens des réseaux sociaux
 def extract_social_links(soup):
     social_links = {
         "facebook": None,
         "instagram": None,
-        "tiktok": None,
-        "snapchat": None,
         "twitter": None,
+        "tiktok": None,
         "linkedin": None,
-        "github": None,
         "youtube": None,
-        "pinterest": None
+        "pinterest": None,
+        "github": None,
+        "snapchat": None
     }
 
-    for link in soup.find_all("a", href=True):
-        href = link["href"]
-        if "facebook.com" in href:
-            social_links["facebook"] = href
-        elif "instagram.com" in href:
-            social_links["instagram"] = href
-        elif "tiktok.com" in href:
-            social_links["tiktok"] = href
-        elif "snapchat.com" in href:
-            social_links["snapchat"] = href
-        elif "twitter.com" in href:
-            social_links["twitter"] = href
-        elif "linkedin.com" in href:
-            social_links["linkedin"] = href
-        elif "github.com" in href:
-            social_links["github"] = href
-        elif "youtube.com" in href or "youtu.be" in href:
-            social_links["youtube"] = href
-        elif "pinterest.com" in href:
-            social_links["pinterest"] = href
+    # Rechercher les balises <script type="application/ld+json">
+    scripts = soup.find_all("script", type="application/ld+json")
+    for script in scripts:
+        try:
+            data = json.loads(script.string)
+            if "sameAs" in data:
+                for link in data["sameAs"]:
+                    if "facebook.com" in link:
+                        social_links["facebook"] = link
+                    elif "instagram.com" in link:
+                        social_links["instagram"] = link
+                    elif "twitter.com" in link:
+                        social_links["twitter"] = link
+                    elif "tiktok.com" in link:
+                        social_links["tiktok"] = link
+                    elif "linkedin.com" in link:
+                        social_links["linkedin"] = link
+                    elif "youtube.com" in link:
+                        social_links["youtube"] = link
+                    elif "pinterest.com" in link:
+                        social_links["pinterest"] = link
+                    elif "github.com" in link:
+                        social_links["github"] = link
+                    elif "snapchat.com" in link:
+                        social_links["snapchat"] = link
+        except (json.JSONDecodeError, TypeError):
+            continue
 
     return social_links
 
