@@ -7,7 +7,7 @@ from urllib.parse import urlparse
 from utils.email_extractor import extract_emails_html, extract_emails_jsonld
 from utils.phone_extractor import extract_phones_html, extract_phones_jsonld, validate_phones
 from utils.social_links import extract_social_links_jsonld
-from utils.link_explorer import extract_links_html, extract_links_jsonld
+from utils.link_explorer import extract_links  # Corrected import
 
 app = Flask(__name__)
 SCRIPT_VERSION = "V 1.3"
@@ -36,9 +36,7 @@ def scrape():
         response.raise_for_status()
 
         soup = BeautifulSoup(response.text, 'html.parser')
-        links_html = extract_links_html(soup, url)
-        links_jsonld = extract_links_jsonld(soup, url)
-        links = set(links_html + links_jsonld)  # Combine and deduplicate links
+        links = extract_links(soup, url)  # Use the correct function
 
         emails = {}
         phones = {}
