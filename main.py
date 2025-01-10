@@ -89,7 +89,7 @@ def scrape():
                         "twitter": social_links.get("twitter"),
                         "youtube": social_links.get("youtube")
                     },
-                    "unique_links": list(visited_links)  # Add unique links to the result
+                    "unique_links": sorted(list(visited_links))  # Add unique links to the result in alphabetical order
                 }
             ]
         }
