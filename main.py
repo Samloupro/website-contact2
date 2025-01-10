@@ -7,7 +7,7 @@ from urllib.parse import urlparse
 from utils.email_extractor import extract_emails_html, extract_emails_jsonld
 from utils.phone_extractor import extract_phones_html, extract_phones_jsonld, validate_phones
 from utils.social_links import extract_social_links_jsonld
-from utils.scrap_links import scrape_links
+from utils.link_scraper import scrape_links  # Update the import statement
 from utils.user_agent import get_user_agent_headers
 from utils.link_analyzer import analyze_links, is_valid_url, extract_links  # Import the link analyzer
 
