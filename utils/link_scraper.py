@@ -34,7 +34,7 @@ def extract_links_jsonld(soup):
             continue
     return links
 
-def scrape_links(url, headers):
+def link_scraper(url, headers):
     if not url or not is_valid_url(url):
         return {'error': 'Invalid URL provided.'}, 400
 
@@ -47,7 +47,7 @@ def scrape_links(url, headers):
         jsonld_links = extract_links_jsonld(soup)
         all_links = links.union(jsonld_links)  # Combine both sets of links
 
-        return all_links, None
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Error accessing the URL: {e}")
-        return None, f"Error accessing the URL: {e}"
+        return list(all_links), None
+    except requests.RequestException as e:
+        logger.error(f"Error scraping {url}: {e}")
+        return [], str(e)
