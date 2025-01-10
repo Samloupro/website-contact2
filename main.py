@@ -1,6 +1,8 @@
+import asyncio
+import aiohttp
+from concurrent.futures import ThreadPoolExecutor
 from flask import Flask, request, jsonify
 from bs4 import BeautifulSoup
-import requests
 import uuid
 import logging
 from urllib.parse import urlparse
@@ -17,8 +19,22 @@ SCRIPT_VERSION = "V 1.3"
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+async def fetch(session, url, headers):
+    async with session.get(url, headers=headers, timeout=10) as response:
+        return await response.text()
+
+def analyze_links_parallel(links, headers, domain):
+    with ThreadPoolExecutor() as executor:
+        loop = asyncio.get_event_loop()
+        tasks = [
+            loop.run_in_executor(executor, analyze_links, link, headers, domain)
+            for link in links
+        ]
+        results = loop.run_until_complete(asyncio.gather(*tasks))
+    return results
+
 @app.route('/scrape', methods=['GET'])
-def scrape():
+async def scrape():
     url = request.args.get('url')
     headers = get_user_agent_headers()
 
@@ -32,17 +48,21 @@ def scrape():
         return jsonify({'error': error}), 500
 
     domain = urlparse(url).netloc
-    
+
     emails, phones, visited_links = {}, {}, set()
     if include_emails or include_phones or include_unique_links:
-        emails, phones, visited_links = analyze_links(links, headers, domain)
-    
+        results = analyze_links_parallel(links, headers, domain)
+        for result in results:
+            emails.update(result[0])
+            phones.update(result[1])
+            visited_links.update(result[2])
+
     social_links = {}
     if include_social_links:
-        response = requests.get(url, headers=headers, timeout=10)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.text, 'html.parser')
-        social_links = extract_social_links_jsonld(soup)
+        async with aiohttp.ClientSession() as session:
+            response_text = await fetch(session, url, headers)
+            soup = BeautifulSoup(response_text, 'html.parser')
+            social_links = extract_social_links_jsonld(soup)
 
     result = {
         "request_id": str(uuid.uuid4()),
