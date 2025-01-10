@@ -30,7 +30,7 @@ def analyze_links_parallel(links, headers, domain):
     return results
 
 @app.route('/scrape', methods=['GET'])
-async def scrape():
+def scrape():
     url = request.args.get('url')
     headers = get_user_agent_headers()
 
