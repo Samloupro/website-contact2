@@ -1,46 +1,37 @@
-from flask import Flask, request, jsonify
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
 from bs4 import BeautifulSoup
-import requests
 import re
 import json
 
-app = Flask(__name__)
+# Configuration du navigateur headless
+def setup_driver():
+    options = Options()
+    options.add_argument('--headless')  # Exécuter sans interface graphique
+    options.add_argument('--disable-gpu')  # Désactiver le GPU
+    options.add_argument('--no-sandbox')  # Nécessaire pour certains environnements
+    options.add_argument('--disable-dev-shm-usage')  # Résoudre les problèmes de mémoire partagée
+    options.add_argument('--incognito')  # Mode incognito
+    options.add_argument('log-level=3')  # Réduire les logs
 
-# Version du script
-SCRIPT_VERSION = "V 1.1"
+    # Remplacez le chemin par celui où se trouve votre ChromeDriver
+    service = Service('/path/to/chromedriver')
+    driver = webdriver.Chrome(service=service, options=options)
+    return driver
 
-# Fonction pour valider les numéros de téléphone (longueur entre 10 et 15)
-def validate_phones(phones):
-    return [phone for phone in phones if 10 <= len(re.sub(r'\D', '', phone)) <= 15]
+# Fonction pour extraire les emails
+def extract_emails(soup):
+    emails = re.findall(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', soup.text)
+    return list(set(emails))  # Supprimer les doublons
 
-# Fonction pour extraire les emails via JSON-LD
-def extract_emails_jsonld(soup):
-    emails = []
-    scripts = soup.find_all("script", type="application/ld+json")
-    for script in scripts:
-        try:
-            data = json.loads(script.string)
-            if "email" in data:
-                emails.append(data["email"])
-        except (json.JSONDecodeError, TypeError):
-            continue
-    return emails
+# Fonction pour extraire les numéros de téléphone
+def extract_phones(soup):
+    phones = re.findall(r'\+?[0-9][0-9.\-\s()]{8,}[0-9]', soup.text)
+    return list(set(phones))  # Supprimer les doublons
 
-# Fonction pour extraire les numéros de téléphone via JSON-LD
-def extract_phones_jsonld(soup):
-    phones = []
-    scripts = soup.find_all("script", type="application/ld+json")
-    for script in scripts:
-        try:
-            data = json.loads(script.string)
-            if "telephone" in data:
-                phones.append(data["telephone"])
-        except (json.JSONDecodeError, TypeError):
-            continue
-    return phones
-
-# Fonction pour extraire les liens des réseaux sociaux via JSON-LD
-def extract_social_links_jsonld(soup):
+# Fonction pour extraire les liens des réseaux sociaux
+def extract_social_links(soup):
     social_links = {
         "facebook": None,
         "instagram": None,
@@ -53,82 +44,51 @@ def extract_social_links_jsonld(soup):
         "snapchat": None
     }
 
-    scripts = soup.find_all("script", type="application/ld+json")
-    for script in scripts:
-        try:
-            data = json.loads(script.string)
-            if "sameAs" in data:
-                for link in data["sameAs"]:
-                    if "facebook.com" in link:
-                        social_links["facebook"] = link
-                    elif "instagram.com" in link:
-                        social_links["instagram"] = link
-                    elif "twitter.com" in link:
-                        social_links["twitter"] = link
-                    elif "tiktok.com" in link:
-                        social_links["tiktok"] = link
-                    elif "linkedin.com" in link:
-                        social_links["linkedin"] = link
-                    elif "youtube.com" in link:
-                        social_links["youtube"] = link
-                    elif "pinterest.com" in link:
-                        social_links["pinterest"] = link
-                    elif "github.com" in link:
-                        social_links["github"] = link
-                    elif "snapchat.com" in link:
-                        social_links["snapchat"] = link
-        except (json.JSONDecodeError, TypeError):
-            continue
+    social_patterns = {
+        "facebook": r"https?://(www\.)?facebook\.com/[^\s\"']+",
+        "instagram": r"https?://(www\.)?instagram\.com/[^\s\"']+",
+        "twitter": r"https?://(www\.)?twitter\.com/[^\s\"']+",
+        "tiktok": r"https?://(www\.)?tiktok\.com/[^\s\"']+",
+        "linkedin": r"https?://(www\.)?linkedin\.com/[^\s\"']+",
+        "youtube": r"https?://(www\.)?youtube\.com/[^\s\"']+",
+        "pinterest": r"https?://(www\.)?pinterest\.com/[^\s\"']+",
+        "github": r"https?://(www\.)?github\.com/[^\s\"']+",
+        "snapchat": r"https?://(www\.)?snapchat\.com/[^\s\"']+"
+    }
+
+    for platform, pattern in social_patterns.items():
+        match = re.search(pattern, soup.text)
+        if match:
+            social_links[platform] = match.group(0)
 
     return social_links
 
-@app.route('/scrape', methods=['POST'])
-def scrape():
-    data = request.get_json()
-    if not data or 'url' not in data:
-        return jsonify({'error': 'Please provide a URL.'}), 400
-
-    url = data['url']
-
-    # Ajouter les headers ici
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5'
-    }
-
+# Fonction principale
+def scrape_url(url):
+    driver = setup_driver()
     try:
-        # Inclure les headers dans la requête
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
+        print(f"Fetching {url}...")
+        driver.get(url)
+        html = driver.page_source
+        soup = BeautifulSoup(html, 'html.parser')
 
-        soup = BeautifulSoup(response.text, 'html.parser')
+        # Extraire les informations
+        emails = extract_emails(soup)
+        phones = extract_phones(soup)
+        social_links = extract_social_links(soup)
 
-        # Extraire les emails
-        emails = re.findall(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', soup.text)
-        emails.extend(extract_emails_jsonld(soup))
-        emails = [email.strip().lower() for email in emails]
-        unique_emails = list(set(emails))
+        result = {
+            "emails": emails,
+            "phones": phones,
+            "social_links": social_links
+        }
+        return result
 
-        # Extraire et valider les numéros de téléphone
-        phones = re.findall(r'\+?[0-9][0-9.\-\s()]{8,}[0-9]', soup.text)
-        phones.extend(extract_phones_jsonld(soup))
-        phones = [re.sub(r'\D', '', phone) for phone in phones]
-        unique_phones = validate_phones(phones)
+    finally:
+        driver.quit()  # Fermer le navigateur
 
-        # Extraire les liens des réseaux sociaux
-        social_links = extract_social_links_jsonld(soup)
-
-        return jsonify({
-            'version': SCRIPT_VERSION,
-            'emails': unique_emails,
-            'phones': unique_phones,
-            'social_links': social_links
-        })
-
-    except requests.exceptions.RequestException as e:
-        return jsonify({'error': f"Error accessing the URL: {str(e)}"}), 500
-
-if __name__ == '__main__':
-    print(f"Starting script version: {SCRIPT_VERSION}")
-    app.run(host='0.0.0.0', port=5000)
+# Exemple d'utilisation
+if __name__ == "__main__":
+    url = "https://www.propertyfinder.ae/en/find-agent"
+    result = scrape_url(url)
+    print(json.dumps(result, indent=4))
