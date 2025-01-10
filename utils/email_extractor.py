@@ -1,18 +1,19 @@
 import re
-import json
 
-def extract_emails_html(text):
-    return re.findall(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', text)
+def validate_phones(phones):
+    return [phone for phone in phones if 10 <= len(re.sub(r'\D', '', phone)) <= 15]
 
-def extract_emails_jsonld(soup):
-    emails = []
+def extract_phones_html(text):
+    return re.findall(r'\+?[0-9][0-9.\-\s()]{8,}[0-9]', text)
+
+def extract_phones_jsonld(soup):
+    phones = []
     scripts = soup.find_all("script", type="application/ld+json")
     for script in scripts:
         try:
             data = json.loads(script.string)
-            if "email" in data:
-                emails.append(data["email"])
+            if "telephone" in data:
+                phones.append(data["telephone"])
         except (json.JSONDecodeError, TypeError):
             continue
-    return emails
-
+    return phones
