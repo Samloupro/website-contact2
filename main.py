@@ -11,13 +11,12 @@ from utils.link_explorer import extract_links
 app = Flask(__name__)
 SCRIPT_VERSION = "V 1.3"
 
-@app.route('/scrape', methods=['POST'])
+@app.route('/scrape', methods=['GET'])
 def scrape():
-    data = request.get_json()
-    if not data or 'url' not in data:
+    url = request.args.get('url')
+    if not url:
         return jsonify({'error': 'Please provide a URL.'}), 400
 
-    url = data['url']
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
