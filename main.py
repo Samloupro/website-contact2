@@ -56,15 +56,25 @@ def scrape():
                 continue
 
         result = {
-            "status": "OK",
-            "request_id": str(uuid.uuid4()),
             "data": [
                 {
-                    "domain": url.split("//")[-1].split("/")[0],
+                    "request_id": str(uuid.uuid4()),
                     "query": url,
+                    "status": "OK",
+                    "domain": url.split("//")[-1].split("/")[0],
                     "emails": [{"value": email, "sources": sources} for email, sources in emails.items()],
                     "phone_numbers": [{"value": phone, "sources": sources} for phone, sources in phones.items()],
-                    **social_links
+                    "social_links": {
+                        "facebook": social_links.get("facebook"),
+                        "github": social_links.get("github"),
+                        "instagram": social_links.get("instagram"),
+                        "linkedin": social_links.get("linkedin"),
+                        "pinterest": social_links.get("pinterest"),
+                        "snapchat": social_links.get("snapchat"),
+                        "tiktok": social_links.get("tiktok"),
+                        "twitter": social_links.get("twitter"),
+                        "youtube": social_links.get("youtube")
+                    }
                 }
             ]
         }
