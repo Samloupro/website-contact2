@@ -7,9 +7,9 @@ app = Flask(__name__)
 
 # Fonction pour valider les numéros de téléphone (longueur entre 10 et 15)
 def validate_phones(phones):
-    return list(set([phone for phone in phones if 10 <= len(phone) <= 15]))
+    return [phone for phone in phones if 10 <= len(phone) <= 15]
 
-# Fonction pour extraire les réseaux sociaux
+# Fonction pour extraire les liens des réseaux sociaux
 def extract_social_links(soup):
     social_links = {
         "facebook": None,
@@ -23,24 +23,26 @@ def extract_social_links(soup):
         "pinterest": None
     }
 
-    # URL patterns pour chaque réseau social
-    patterns = {
-        "facebook": r"https?://(www\.)?facebook\.com/[^\s]+",
-        "instagram": r"https?://(www\.)?instagram\.com/[^\s]+",
-        "tiktok": r"https?://(www\.)?tiktok\.com/@[^\s]+",
-        "snapchat": r"https?://(www\.)?snapchat\.com/add/[^\s]+",
-        "twitter": r"https?://(www\.)?twitter\.com/[^\s]+",
-        "linkedin": r"https?://(www\.)?linkedin\.com/[^\s]+",
-        "github": r"https?://(www\.)?github\.com/[^\s]+",
-        "youtube": r"https?://(www\.)?(youtube\.com|youtu\.be)/[^\s]+",
-        "pinterest": r"https?://(www\.)?pinterest\.com/[^\s]+"
-    }
-
-    # Rechercher les liens dans tout le texte de la page
-    for platform, pattern in patterns.items():
-        match = re.search(pattern, soup.text)
-        if match:
-            social_links[platform] = match.group(0)
+    for link in soup.find_all("a", href=True):
+        href = link["href"]
+        if "facebook.com" in href:
+            social_links["facebook"] = href
+        elif "instagram.com" in href:
+            social_links["instagram"] = href
+        elif "tiktok.com" in href:
+            social_links["tiktok"] = href
+        elif "snapchat.com" in href:
+            social_links["snapchat"] = href
+        elif "twitter.com" in href:
+            social_links["twitter"] = href
+        elif "linkedin.com" in href:
+            social_links["linkedin"] = href
+        elif "github.com" in href:
+            social_links["github"] = href
+        elif "youtube.com" in href or "youtu.be" in href:
+            social_links["youtube"] = href
+        elif "pinterest.com" in href:
+            social_links["pinterest"] = href
 
     return social_links
 
