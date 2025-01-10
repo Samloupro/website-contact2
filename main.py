@@ -7,7 +7,8 @@ from urllib.parse import urlparse
 from utils.email_extractor import extract_emails_html, extract_emails_jsonld
 from utils.phone_extractor import extract_phones_html, extract_phones_jsonld, validate_phones
 from utils.social_links import extract_social_links_jsonld
-from utils.scrap_links import scrape_links  # Import the new scrap_links module
+from utils.scrap_links import scrape_links
+from utils.user_agent import get_user_agent_headers  # Import the user agent headers
 
 app = Flask(__name__)
 SCRIPT_VERSION = "V 1.3"
@@ -18,11 +19,7 @@ logger = logging.getLogger(__name__)
 @app.route('/scrape', methods=['GET'])
 def scrape():
     url = request.args.get('url')
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5'
-    }
+    headers = get_user_agent_headers()  # Use the user agent headers
 
     links, error = scrape_links(url, headers)
     if error:
