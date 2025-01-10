@@ -32,9 +32,17 @@ def scrape():
         return jsonify({'error': error}), 500
 
     domain = urlparse(url).netloc
-    emails, phones, visited_links = analyze_links(links, headers, domain) if include_emails or include_phones or include_unique_links else ([], [], [])
-
-    social_links = extract_social_links_jsonld(BeautifulSoup(requests.get(url, headers=headers, timeout=10).text, 'html.parser')) if include_social_links else {}
+    
+    emails, phones, visited_links = {}, {}, set()
+    if include_emails or include_phones or include_unique_links:
+        emails, phones, visited_links = analyze_links(links, headers, domain)
+    
+    social_links = {}
+    if include_social_links:
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, 'html.parser')
+        social_links = extract_social_links_jsonld(soup)
 
     result = {
         "request_id": str(uuid.uuid4()),
