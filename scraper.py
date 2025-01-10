@@ -7,7 +7,7 @@ import json
 app = Flask(__name__)
 
 # Version du script
-SCRIPT_VERSION = "V 1.3"
+SCRIPT_VERSION = "V 1.1"
 
 # Fonction pour valider les numéros de téléphone (longueur entre 10 et 15)
 def validate_phones(phones):
@@ -82,47 +82,6 @@ def extract_social_links_jsonld(soup):
 
     return social_links
 
-# Fonction pour extraire les liens des réseaux sociaux directement dans le HTML
-def extract_social_links_direct(soup):
-    social_links = {
-        "facebook": None,
-        "instagram": None,
-        "twitter": None,
-        "tiktok": None,
-        "linkedin": None,
-        "youtube": None,
-        "pinterest": None,
-        "github": None,
-        "snapchat": None
-    }
-
-    social_patterns = {
-        "facebook": r"https?://(www\.)?facebook\.com/[^\s\"']+",
-        "instagram": r"https?://(www\.)?instagram\.com/[^\s\"']+",
-        "twitter": r"https?://(www\.)?twitter\.com/[^\s\"']+",
-        "tiktok": r"https?://(www\.)?tiktok\.com/[^\s\"']+",
-        "linkedin": r"https?://(www\.)?linkedin\.com/[^\s\"']+",
-        "youtube": r"https?://(www\.)?youtube\.com/[^\s\"']+",
-        "pinterest": r"https?://(www\.)?pinterest\.com/[^\s\"']+",
-        "github": r"https?://(www\.)?github\.com/[^\s\"']+",
-        "snapchat": r"https?://(www\.)?snapchat\.com/[^\s\"']+"
-    }
-
-    for platform, pattern in social_patterns.items():
-        match = re.search(pattern, soup.text)
-        if match:
-            social_links[platform] = match.group(0)
-
-    return social_links
-
-# Fusion des résultats des deux méthodes pour les réseaux sociaux
-def extract_social_links(soup):
-    social_links_json = extract_social_links_jsonld(soup)
-    social_links_direct = extract_social_links_direct(soup)
-    
-    merged_links = {key: social_links_json.get(key) or social_links_direct.get(key) for key in social_links_json.keys()}
-    return merged_links
-
 @app.route('/scrape', methods=['POST'])
 def scrape():
     data = request.get_json()
@@ -131,10 +90,15 @@ def scrape():
 
     url = data['url']
 
+    # Ajouter les headers ici
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5'
+    }
+
     try:
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.5615.138 Safari/537.36'
-        }
+        # Inclure les headers dans la requête
         response = requests.get(url, headers=headers)
         response.raise_for_status()
 
@@ -153,7 +117,7 @@ def scrape():
         unique_phones = validate_phones(phones)
 
         # Extraire les liens des réseaux sociaux
-        social_links = extract_social_links(soup)
+        social_links = extract_social_links_jsonld(soup)
 
         return jsonify({
             'version': SCRIPT_VERSION,
