@@ -21,7 +21,8 @@ logger = logging.getLogger(__name__)
 
 def analyze_links_parallel(links, headers, domain):
     with ThreadPoolExecutor() as executor:
-        loop = asyncio.get_event_loop()
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
         tasks = [
             loop.run_in_executor(executor, analyze_links, link, headers, domain)
             for link in links
