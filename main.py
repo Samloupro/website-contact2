@@ -8,9 +8,8 @@ from urllib.parse import urlparse
 from utils.email_extractor import extract_emails_html, extract_emails_jsonld
 from utils.phone_extractor import extract_phones_html, extract_phones_jsonld, validate_phones
 from utils.social_links import extract_social_links_jsonld
-from utils.link_scraper import link_scraper
-from utils.user_agent import get_user_agent_headers
-from utils.link_analyzer import analyze_links, is_valid_url, extract_links
+from utils.link_scraper import link_scraper, extract_links, is_valid_url
+from utils.link_analyzer import analyze_links
 import requests
 
 app = Flask(__name__)
