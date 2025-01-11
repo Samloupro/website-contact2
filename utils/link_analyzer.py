@@ -6,6 +6,20 @@ from utils.phone_extractor import extract_phones_html, extract_phones_jsonld, va
 
 logger = logging.getLogger(__name__)
 
+def is_valid_url(url):
+    parsed = urlparse(url)
+    return bool(parsed.netloc) and bool(parsed.scheme)
+
+def extract_links(soup, base_url):
+    links = set()
+    for a_tag in soup.find_all("a", href=True):
+        href = a_tag["href"]
+        if href.startswith("/"):
+            href = base_url.rstrip("/") + href
+        if href.startswith("http"):
+            links.add(href)
+    return links
+
 def analyze_links(links, headers):
     emails = {}
     phones = {}
