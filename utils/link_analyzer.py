@@ -50,7 +50,7 @@ def validate_email_address(email):
         email = email.strip().rstrip('.')  # Ensure no trailing dot and strip whitespace
         v = validate_email(email)
         # Ensure the email has no trailing dot or other invalid characters
-        if email != v.email:
+        if email != v.email or '.' in email.split('@')[-1]: 
             raise EmailNotValidError("Invalid email format")
         return True
     except EmailNotValidError:
