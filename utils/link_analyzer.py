@@ -15,7 +15,7 @@ def is_valid_url(url):
     return bool(parsed.netloc) and bool(parsed.scheme)
 
 def analyze_links(links, headers):
-    emails = {}
+    emails = set()  # Use a set to ensure uniqueness
     phones = {}
     visited_links = set()
 
@@ -35,7 +35,7 @@ def analyze_links(links, headers):
             for email in set(emails_found):
                 email = email.strip().rstrip('.')  # Ensure no trailing dot and strip whitespace
                 if validate_email_address(email):
-                    emails.setdefault(email, []).append(link)
+                    emails.add(email)  # Add to set for uniqueness
 
             phones_found = extract_phones_html(soup.text) + extract_phones_jsonld(soup)
             for phone in set(validate_phones(phones_found)):
@@ -43,7 +43,7 @@ def analyze_links(links, headers):
         except requests.exceptions.RequestException as e:
             logger.error(f"Failed to process link {link}: {e}")
 
-    return emails, phones, visited_links
+    return list(emails), phones, visited_links  # Convert set to list for returning
 
 def validate_email_address(email):
     try:
