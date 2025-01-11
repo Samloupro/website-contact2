@@ -1,3 +1,5 @@
+# main.py
+
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from flask import Flask, request, jsonify
@@ -12,6 +14,7 @@ from utils.link_scraper import link_scraper, extract_links, is_valid_url
 from utils.user_agent import get_user_agent_headers  # Ensure this import is present
 from utils.link_analyzer import analyze_links
 import requests
+from email_validator import validate_email, EmailNotValidError
 
 app = Flask(__name__)
 SCRIPT_VERSION = "V 1.4"
@@ -71,7 +74,7 @@ def scrape():
         "status": "OK",
         "data": [
             {
-                "emails": [{"value": email, "sources": sources} for email, sources in emails.items()] if include_emails else [],
+                "emails": [{"value": email, "sources": sources} for email, sources in emails.items() if validate_email_address(email)] if include_emails else [],
                 "phone_numbers": [{"value": phone, "sources": sources} for phone, sources in phones.items()] if include_phones else [],
                 "social_links": social_links if include_social_links else {},
                 "unique_links": sorted(list(visited_links)) if include_unique_links else []
@@ -81,6 +84,13 @@ def scrape():
 
     logger.info(f"Processed URL: {url}")
     return jsonify(result)
+
+def validate_email_address(email):
+    try:
+        validate_email(email)
+        return True
+    except EmailNotValidError:
+        return False
 
 if __name__ == '__main__':
     print(f"Starting script version: {SCRIPT_VERSION}")
