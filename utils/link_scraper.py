@@ -16,7 +16,7 @@ def extract_links(soup, base_url):
         href = a_tag["href"]
         if href.startswith("/"):
             href = base_url.rstrip("/") + href
-        if href.startswith("http"):
+        if href.startswith("http") and is_valid_url(href):
             links.add(href)
     return links
 
@@ -28,7 +28,7 @@ def extract_links_jsonld(soup):
             data = json.loads(script.string)
             if "sameAs" in data:
                 for link in data["sameAs"]:
-                    if link.startswith("http"):
+                    if link.startswith("http") and is_valid_url(link):
                         links.add(link)
         except (json.JSONDecodeError, TypeError):
             continue
@@ -36,6 +36,7 @@ def extract_links_jsonld(soup):
 
 def link_scraper(url, headers):
     if not url or not is_valid_url(url):
+        logger.error(f"Invalid URL provided: {url}")
         return {'error': 'Invalid URL provided.'}, 400
 
     try:
@@ -48,7 +49,7 @@ def link_scraper(url, headers):
         jsonld_links = extract_links_jsonld(soup)
         all_links = links.union(jsonld_links)  # Combine both sets of links
 
-        # Ajoutez des logs pour vérifier les liens extraits
+        # Log the extracted links for verification
         logger.info(f"Extracted links: {all_links}")
 
         return list(all_links), None
