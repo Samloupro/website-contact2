@@ -33,6 +33,7 @@ def analyze_links(links, headers):
 
             emails_found = extract_emails_html(soup.text) + extract_emails_jsonld(soup)
             for email in set(emails_found):
+                email = email.strip().rstrip('.')  # Ensure no trailing dot and strip whitespace
                 if validate_email_address(email):
                     emails.setdefault(email, []).append(link)
 
@@ -46,7 +47,11 @@ def analyze_links(links, headers):
 
 def validate_email_address(email):
     try:
-        validate_email(email)
+        email = email.strip().rstrip('.')  # Ensure no trailing dot and strip whitespace
+        v = validate_email(email)
+        # Ensure the email has no trailing dot or other invalid characters
+        if email != v.email:
+            raise EmailNotValidError("Invalid email format")
         return True
     except EmailNotValidError:
         return False
