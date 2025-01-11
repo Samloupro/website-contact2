@@ -17,7 +17,7 @@ import requests
 from email_validator import validate_email, EmailNotValidError
 
 app = Flask(__name__)
-SCRIPT_VERSION = "V 1.4"
+SCRIPT_VERSION = "V 1.5"
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
