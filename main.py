@@ -40,7 +40,7 @@ def scrape():
     include_social_links = request.args.get('include_social_links', 'true').lower() == 'true'
     include_unique_links = request.args.get('include_unique_links', 'true').lower() == 'true'
 
-    links, error = scrape_links(url, headers)
+    links, error = link_scraper(url, headers)
     if error:
         return jsonify({'error': error}), 500
 
