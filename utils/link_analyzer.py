@@ -1,27 +1,12 @@
 from bs4 import BeautifulSoup
 import requests
-from urllib.parse import urlparse
 import logging
 from utils.email_extractor import extract_emails_html, extract_emails_jsonld  # Import the email extraction functions
 from utils.phone_extractor import extract_phones_html, extract_phones_jsonld, validate_phones  # Import phone extraction functions
 
 logger = logging.getLogger(__name__)
 
-def is_valid_url(url):
-    parsed = urlparse(url)
-    return bool(parsed.netloc) and bool(parsed.scheme)
-
-def extract_links(soup, base_url):
-    links = set()
-    for a_tag in soup.find_all("a", href=True):
-        href = a_tag["href"]
-        if href.startswith("/"):
-            href = base_url.rstrip("/") + href
-        if href.startswith("http"):
-            links.add(href)
-    return links
-
-def analyze_links(links, headers, domain):
+def analyze_links(links, headers):
     emails = {}
     phones = {}
     visited_links = set()
@@ -29,14 +14,11 @@ def analyze_links(links, headers, domain):
     for link in links:  # Analyze all links
         if link in visited_links:
             continue
-        if not is_valid_url(link):
-            logger.error(f"Invalid URL: {link}")
-            continue
-
-        visited_links.add(link)
         
         # Log each analyzed link
         logger.info(f"Analyzing link: {link}")
+        
+        visited_links.add(link)
         
         try:
             sub_response = requests.get(link, headers=headers, timeout=10)
