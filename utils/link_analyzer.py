@@ -1,9 +1,12 @@
+# utils/link_analyzer.py
+
 from bs4 import BeautifulSoup
 import requests
 import logging
 from urllib.parse import urlparse
 from utils.email_extractor import extract_emails_html, extract_emails_jsonld
 from utils.phone_extractor import extract_phones_html, extract_phones_jsonld, validate_phones
+from email_validator import validate_email, EmailNotValidError
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +33,8 @@ def analyze_links(links, headers):
 
             emails_found = extract_emails_html(soup.text) + extract_emails_jsonld(soup)
             for email in set(emails_found):
-                emails.setdefault(email, []).append(link)
+                if validate_email_address(email):
+                    emails.setdefault(email, []).append(link)
 
             phones_found = extract_phones_html(soup.text) + extract_phones_jsonld(soup)
             for phone in set(validate_phones(phones_found)):
@@ -39,3 +43,10 @@ def analyze_links(links, headers):
             logger.error(f"Failed to process link {link}: {e}")
 
     return emails, phones, visited_links
+
+def validate_email_address(email):
+    try:
+        validate_email(email)
+        return True
+    except EmailNotValidError:
+        return False
