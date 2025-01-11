@@ -29,6 +29,10 @@ def analyze_links(links, headers, domain):
     for link in links:  # Analyze all links
         if link in visited_links:
             continue
+        if not is_valid_url(link):
+            logger.error(f"Invalid URL: {link}")
+            continue
+
         visited_links.add(link)
         
         # Log each analyzed link
