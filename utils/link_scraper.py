@@ -44,12 +44,12 @@ def link_scraper(url, headers):
 
         soup = BeautifulSoup(response.text, 'html.parser')
 
-        # Ajoutez des logs pour vérifier le contenu de la réponse
-        logger.info(f"Response content: {response.text}")
-
         links = extract_links(soup, url)
         jsonld_links = extract_links_jsonld(soup)
         all_links = links.union(jsonld_links)  # Combine both sets of links
+
+        # Ajoutez des logs pour vérifier les liens extraits
+        logger.info(f"Extracted links: {all_links}")
 
         return list(all_links), None
     except requests.RequestException as e:
