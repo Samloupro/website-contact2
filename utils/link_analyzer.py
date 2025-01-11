@@ -27,9 +27,13 @@ def analyze_links(links, headers, domain):
     visited_links = set()
 
     for link in links:  # Analyze all links
-        if link in visited_links or urlparse(link).netloc != domain:
+        if link in visited_links:
             continue
         visited_links.add(link)
+        
+        # Log each analyzed link
+        logger.info(f"Analyzing link: {link}")
+        
         try:
             sub_response = requests.get(link, headers=headers, timeout=10)
             sub_response.raise_for_status()
