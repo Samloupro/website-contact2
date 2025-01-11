@@ -1,10 +1,15 @@
 from bs4 import BeautifulSoup
 import requests
 import logging
+from urllib.parse import urlparse
 from utils.email_extractor import extract_emails_html, extract_emails_jsonld
 from utils.phone_extractor import extract_phones_html, extract_phones_jsonld, validate_phones
 
 logger = logging.getLogger(__name__)
+
+def is_valid_url(url):
+    parsed = urlparse(url)
+    return bool(parsed.netloc) and bool(parsed.scheme)
 
 def analyze_links(links, headers):
     emails = {}
