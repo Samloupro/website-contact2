@@ -3,4 +3,6 @@ beautifulsoup4==4.12.3
 requests==2.31.0
 lxml==4.9.3
 html5lib==1.1
+email_validator==2.1.0
+gunicorn
 
